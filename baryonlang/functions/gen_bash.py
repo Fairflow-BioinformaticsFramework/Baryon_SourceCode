@@ -388,10 +388,10 @@ def gen_bash(sections, script_name, as_function=False):
         )
 
     param_names = [p['name'] for p in parameters]
-    param_names_str = ' '.join(param_names)
+    param_names_str = ' '.join(f'"{n}"' for n in param_names)
 
     w(
-        f'{p}PARAM_NAMES=("{param_names_str}")',
+        f'{p}PARAM_NAMES=({param_names_str})',
         f'{p}cmd="{bala_cmd} ${{mount_str}} {full_template}"',
         f'{p}for key in "${{!docker_vals[@]}}"; do',
         f'{p}    val="${{docker_vals[${{key}}]}}"',
