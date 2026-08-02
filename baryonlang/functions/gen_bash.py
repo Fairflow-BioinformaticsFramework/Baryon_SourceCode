@@ -386,12 +386,15 @@ def gen_bash(sections, script_name, as_function=False):
             f'{p}mount_str="${{mount_str//-v \\"/ --bind }}"',
             f'{p}mount_str="${{mount_str//\\"}}"',
         )
-
     param_names = [p['name'] for p in parameters]
     param_names_str = ' '.join(f'"{n}"' for n in param_names)
 
+    _special_class = "[;&|()<>$`\"'[:space:]]"
+    _special_class_escaped = _special_class.replace("'", "'\"'\"'")
+
     w(
         f'{p}PARAM_NAMES=({param_names_str})',
+        f"{p}special_chars_re='{_special_class_escaped}'",
         f'{p}cmd="{bala_cmd} ${{mount_str}} {full_template}"',
         f'{p}for key in "${{!docker_vals[@]}}"; do',
         f'{p}    val="${{docker_vals[${{key}}]}}"',
@@ -399,7 +402,7 @@ def gen_bash(sections, script_name, as_function=False):
         f'{p}    for p_name in "${{PARAM_NAMES[@]}}"; do',
         f'{p}        if [ "${{key}}" = "${{p_name}}" ]; then is_param=1; break; fi',
         f'{p}    done',
-        f"{p}    if [ \"${{is_param}}\" -eq 1 ] && [[ \"${{val}}\" =~ [';&\\|\\(\\)\\<\\>\\$\\`\\\"\\'[[:space:]]] ]]; then",
+        f'{p}    if [ "${{is_param}}" -eq 1 ] && [[ "${{val}}" =~ ${{special_chars_re}} ]]; then',
         f'{p}        escaped_val=$(echo "${{val}}" | sed \'s/"/\\\\"/g\')',
         f'{p}        cmd="${{cmd//<${{key}}>/\\"${{escaped_val}}\\"}}"',
         f'{p}    else',
@@ -407,7 +410,8 @@ def gen_bash(sections, script_name, as_function=False):
         f'{p}    fi',
         f'{p}done',
         f'{p}echo -e "\\n${{YELLOW}}Running:${{RESET}}\\n${{WHITE}}${{cmd}}${{RESET}}\\n"',
-    )    
+    )
+
     w(
         f'{p}log_path="${{scratch_path}}/output_log.txt"',
         f'{p}echo -e "${{YELLOW}}Log:${{RESET}} ${{WHITE}}${{log_path}}${{RESET}}\\n"',
