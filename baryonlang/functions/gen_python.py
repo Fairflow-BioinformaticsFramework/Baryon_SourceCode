@@ -324,13 +324,16 @@ def gen_python(sections, script_name, as_function=False):
         "    mount_str = ' '.join(mounts)")
     if bala_cmd.split()[0].lower() == 'singularity':     
        w( "    mount_str = mount_str.replace('-v \"', '--bind ').replace('\"', '')")
+
+    param_names = [p['name'] for p in parameters]
     w(  
         f"    cmd = ' '.join(['{bala_cmd}', mount_str, {repr(full_template)}])",          
+        f"    PARAM_NAMES = {param_names!r}",
         "    def replace_placeholder(match):",
         "        key = match.group(1)",
         "        val = str(docker_vals.get(key, match.group(0)))",
-        "        if key in [p['name'] for p in parameters]:",
-        "            if re.search(r\"[;&|()<>$`\\\\\\\\\\\"'\\s]\", val):",
+        "        if key in PARAM_NAMES:",
+        "            if re.search(r'[;&|()<>$`\"\\'\\s]', val):",
         "                escaped_val = val.replace('\"', '\\\\\"')",
         "                return f'\"{escaped_val}\"'",
         "        return val",
