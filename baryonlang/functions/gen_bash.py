@@ -386,13 +386,28 @@ def gen_bash(sections, script_name, as_function=False):
             f'{p}mount_str="${{mount_str//-v \\"/ --bind }}"',
             f'{p}mount_str="${{mount_str//\\"}}"',
         )
+
+    param_names = [p['name'] for p in parameters]
+    param_names_str = ' '.join(param_names)
+
     w(
+        f'{p}PARAM_NAMES=("{param_names_str}")',
         f'{p}cmd="{bala_cmd} ${{mount_str}} {full_template}"',
         f'{p}for key in "${{!docker_vals[@]}}"; do',
-        f'{p}    cmd="${{cmd//<${{key}}>/${{docker_vals[${{key}}]}}}}"',
-        f"{p}done",
+        f'{p}    val="${{docker_vals[${{key}}]}}"',
+        f'{p}    is_param=0',
+        f'{p}    for p_name in "${{PARAM_NAMES[@]}}"; do',
+        f'{p}        if [ "${{key}}" = "${{p_name}}" ]; then is_param=1; break; fi',
+        f'{p}    done',
+        f"{p}    if [ \"${{is_param}}\" -eq 1 ] && [[ \"${{val}}\" =~ [';&\\|\\(\\)\\<\\>\\$\\`\\\"\\'[[:space:]]] ]]; then",
+        f'{p}        escaped_val=$(echo "${{val}}" | sed \'s/"/\\\\"/g\')',
+        f'{p}        cmd="${{cmd//<${{key}}>/\\"${{escaped_val}}\\"}}"',
+        f'{p}    else',
+        f'{p}        cmd="${{cmd//<${{key}}>/${{val}}}}"',
+        f'{p}    fi',
+        f'{p}done',
         f'{p}echo -e "\\n${{YELLOW}}Running:${{RESET}}\\n${{WHITE}}${{cmd}}${{RESET}}\\n"',
-    )
+    )    
     w(
         f'{p}log_path="${{scratch_path}}/output_log.txt"',
         f'{p}echo -e "${{YELLOW}}Log:${{RESET}} ${{WHITE}}${{log_path}}${{RESET}}\\n"',

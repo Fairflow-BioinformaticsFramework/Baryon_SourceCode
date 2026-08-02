@@ -336,7 +336,10 @@ def gen_r(sections, script_name, as_function=False):
         f"{p}for (ph in placeholders) {{",
         f"{p}  key <- gsub('<|>', '', ph)",
         f"{p}  val <- docker_vals[[key]]",
-        f"{p}  if (!is.null(val)) cmd <- gsub(ph, val, cmd, fixed = TRUE)",
+        f"{p}  if (!is.null(val)) {{",
+        f"{p}    if (grepl('[;&|()<>$\\\\`\"\\'\\\\s]', val, perl = TRUE)) val <- paste0('\"', gsub('\"', '\\\\\"', val, fixed = TRUE), '\"')",
+        f"{p}    cmd <- gsub(ph, val, cmd, fixed = TRUE)",
+        f"{p}  }}",
         f"{p}}}",
         f"{p}cat('\\n', YELLOW, 'Running:\\n', RESET, WHITE, cmd, RESET, '\\n\\n', sep = '')",
     )
